@@ -1,9 +1,7 @@
 # -*- coding:utf-8 -*-
 
-
-class BaseSlothException(Exception):
-    pass
+from .baseobject import SlothBaseException
 
 
-class HandlerException(BaseException):
+class HandlerException(SlothBaseException):
     pass
