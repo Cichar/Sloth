@@ -4,4 +4,8 @@ from .baseobject import ThreadSafeObject
 
 
 class SlothRequest(ThreadSafeObject):
-    pass
+    def __init__(self):
+        self.__environ = None
+
+    def bind_environ(self, environ):
+        self.__environ = environ

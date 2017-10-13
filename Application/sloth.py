@@ -1,5 +1,7 @@
 # -*- coding:utf-8 -*-
 
+from Utils.request import SlothRequest
+from Utils.response import SlothResponse
 from Utils.exception import HandlerException
 
 
