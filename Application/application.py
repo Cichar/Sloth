@@ -1,13 +1,18 @@
 # -*- coding:utf-8 -*-
 
+from Utils.exception import HandlerException
+
 
 class Application(object):
-    def __init__(self, environ, start_response):
-        self.environ = environ
-        self.start_response = start_response
+    def __init__(self, handlers: dict=None):
+        if handlers:
+            self._handlers = handlers
+        else:
+            raise HandlerException('Application Need At Least One Handler. '
+                                   'But Application.handlers = %s' % handlers)
 
-    def __iter__(self):
+    def __call__(self, environ, start_response):
         status = '200 OK'
         response_headers = [('Content-type', 'text/plain')]
-        self.start_response(status, response_headers)
-        yield b"Hello world!\n"
+        start_response(status, response_headers)
+        return [b"Hello world\n"]
