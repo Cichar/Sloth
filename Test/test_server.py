@@ -1,8 +1,10 @@
 # -*- coding:utf-8 -*-
 
+from Server import Server
+from Application import Sloth
 
-from Server.server import Server
-from Application.application import Application
+app = Sloth(handlers={'test_handler': 'test'})
+server = Server(app)
 
 if __name__ == '__main__':
-    Server(Application(handlers={'test_handler': 'test'})).start()
+    server.start()
