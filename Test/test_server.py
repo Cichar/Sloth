@@ -3,7 +3,7 @@
 from Server import Server
 from Application import Sloth
 
-app = Sloth(handlers={'test_handler': 'test'})
+app = Sloth(routers={'test_handler': 'test'})
 server = Server(app)
 
 if __name__ == '__main__':
