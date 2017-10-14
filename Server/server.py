@@ -13,6 +13,7 @@ class Server(object):
             print('Sloth on http://{0}:{1}'.format(self._host, self._port))
             server.serve_forever()
         except KeyboardInterrupt:
+            # server.shutdown()
             pass
 
     def _make_server(self):
