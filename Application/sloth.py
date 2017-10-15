@@ -22,26 +22,27 @@ class Sloth(object):
 
     """
 
+    __name__ = 'Sloth'
+    __version__ = 1.0
+
     def __init__(self, routers: dict=None):
-        if routers:
-            self._routers = routers
-        else:
+        if not routers:
             raise HandlerException('Application Need At Least One Router. '
                                    'But Sloth.routers = %s' % routers)
 
         self._response_cls = SlothResponse
-        self._router_manager = RouterManager(routers, self._response_cls)
+        self._router_manager = RouterManager(self, routers, self._response_cls)
 
-    def _handler_request(self):
+    def _handler_request(self, request):
         try:
-            response = self._router_manager.get_response(self._request.path, self._request.method)
+            response = self._router_manager.get_response(request)
             return response
         except Exception:
             pass
 
     def __call__(self, environ, start_response):
-        self._request = SlothRequest(environ)
-        response = self._handler_request()
+        request = SlothRequest(environ)
+        response = self._handler_request(request)
 
         start_response(response.status, response.headers)
-        return [response.body]
+        return response.execute()
