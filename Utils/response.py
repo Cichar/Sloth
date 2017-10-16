@@ -145,4 +145,4 @@ class SlothResponse(ThreadSafeObject):
         self.finish(*args, **kwargs)
 
     def start_response(self):
-        pass
+        return self.body
