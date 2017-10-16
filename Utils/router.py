@@ -1,12 +1,16 @@
 # -*- coding:utf-8 -*-
 
 from Utils.baseobject import Singleton
+from Utils.exception import RouterException
+from Utils.exception import RegisterException
+from Utils.exception import RouterTypeException
 
 
 class RouterRule(object):
     """ Rule for register router in Sloth """
 
-    def __init__(self, path, router):
+    def __init__(self, path: str, router, name=None):
+        self.name = name
         self.path = path
         self.router = router
 
@@ -14,48 +18,45 @@ class RouterRule(object):
         self.router.start_response()
 
 
-class RouterStore(object):
-    """ Register the routers """
-
-    def __init__(self, routers):
-        self.__unregistered_routers = routers
-        self.__registered_routers = self.register_routers()
-
-    def register_routers(self):
-        """ Register routers in Store. 
-        """
-
-        registered_routers = {}
-
-        for path, router in self.__unregistered_routers:
-            pass
-
-        return registered_routers
-
-    def find_router(self, request):
-        return self.__registered_routers.get(request.path, None)
-
-
 class RouterManager(object, metaclass=Singleton):
     """ Manager for Sloth's routers/handlers.
         This class must only be an instance object in Sloth class.
     """
 
-    def __init__(self, app, routers, response_cls):
+    def __init__(self, app: object, routers: dict, response_cls):
+        self.application = app
         self._routers = self.register_routers(routers)
         self._response_cls = response_cls
-        self.application = app
+        self.__registered = False
 
-    @staticmethod
-    def register_routers(routers):
-        return RouterStore(routers)
+    def register_routers(self, routers: dict):
+        registered_routers = {}
 
-    def get_router(self, request):
-        router = self._routers.find_router(request)
+        for path, _router in routers.items():
+            if not callable(_router):
+                raise RouterException('Router must be a callable function object')
+            if not isinstance(_router, self._response_cls):
+                raise RouterTypeException('Router must be the subclass of %s.' % self._response_cls.__name__)
+            router = RouterRule(path, _router)
+            registered_routers[router] = _router
+
+        self.__registered = True
+        return registered_routers
+
+    def find_router(self, request):
+        """ Use request to find the router, which registered in this manager.
+            If registered flag is not True, maybe register func not execute.
+            then raise RegisterException()
+        """
+
+        if not self.__registered:
+            raise RegisterException('RouterManager has no routers map, '
+                                    'maybe register function not execute.')
+        router = self._routers.get(request.path, None)
         return router
 
     def get_response(self, request):
-        router = self.get_router(request)
+        router = self.find_router(request)
 
         # if router is exist, then return correct response
         # else assert the router is not exist, return default 404 response
