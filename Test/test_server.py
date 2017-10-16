@@ -2,8 +2,14 @@
 
 from Server import Server
 from Application import Sloth
+from Utils.response import SlothResponse
 
-app = Sloth(routers={'test_handler': 'test'})
+
+class IndexHandler(SlothResponse):
+    pass
+
+
+app = Sloth(routers={'test_handler': IndexHandler})
 server = Server(app)
 
 if __name__ == '__main__':
