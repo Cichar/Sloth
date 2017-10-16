@@ -10,7 +10,7 @@ class Server(object):
     def start(self):
         try:
             server = self._make_server()
-            print('Sloth on http://{0}:{1}'.format(self._host, self._port))
+            print('Sloth run on http://{0}:{1}'.format(self._host, self._port))
             server.serve_forever()
         except KeyboardInterrupt:
             # server.shutdown()
