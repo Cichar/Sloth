@@ -2,7 +2,7 @@
 
 
 class Server(object):
-    def __init__(self, app: object, host: str='127.0.0.1', port: int=8555):
+    def __init__(self, app, host: str='127.0.0.1', port: int=8555):
         self._host = host
         self._port = port
         self.application = app
@@ -10,7 +10,7 @@ class Server(object):
     def start(self):
         try:
             server = self._make_server()
-            print('Sloth run on http://{0}:{1}'.format(self._host, self._port))
+            print('{2} run on http://{0}:{1}'.format(self._host, self._port, self.application.__server__))
             server.serve_forever()
         except KeyboardInterrupt:
             # server.shutdown()
