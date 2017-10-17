@@ -41,7 +41,7 @@ class SlothResponse(ThreadSafeObject):
         """
 
         self.__headers = [('Server', 'SlothServer/%s' % self.application.__version__)]
-        self.__status_code = 200
+        self.__status_code = '200 '
         self.__reason = normal_response[200]
 
     def head(self, *args, **kwargs):
@@ -132,7 +132,7 @@ class SlothResponse(ThreadSafeObject):
         """ Set status for response 
         """
 
-        self.__status_code = status_code
+        self.__status_code = '%s ' % status_code
         if reason:
             self.__body = self.__reason = reason
         else:
@@ -141,8 +141,20 @@ class SlothResponse(ThreadSafeObject):
             except KeyError:
                 raise ValueError("Unknown HTTP Error Code %d" % status_code)
 
+    @staticmethod
+    def _to_bytes(chunk):
+        """ If chunk object is not bytes,
+            Conversion chunk to bytes then return,
+            else return immediately.
+        """
+
+        if not isinstance(chunk, bytes):
+            return [bytes(chunk, 'utf-8')]
+        else:
+            return [chunk]
+
     def render_template(self, *args, **kwargs):
         self.finish(*args, **kwargs)
 
     def start_response(self):
-        return self.body
+        return self._to_bytes(self.body)
