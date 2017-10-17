@@ -23,7 +23,7 @@ class SlothResponse(ThreadSafeObject):
 
     @property
     def status(self):
-        return str(self.__status_code)
+        return '%s ' % self.__status_code
 
     @property
     def headers(self):
@@ -41,7 +41,7 @@ class SlothResponse(ThreadSafeObject):
         """
 
         self.__headers = [('Server', 'SlothServer/%s' % self.application.__version__)]
-        self.__status_code = '200 '
+        self.__status_code = 200
         self.__reason = normal_response[200]
 
     def head(self, *args, **kwargs):
@@ -132,7 +132,7 @@ class SlothResponse(ThreadSafeObject):
         """ Set status for response 
         """
 
-        self.__status_code = '%s ' % status_code
+        self.__status_code = status_code
         if reason:
             self.__body = self.__reason = reason
         else:
