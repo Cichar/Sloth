@@ -20,6 +20,9 @@ class _Router(SlothRouter):
         """ This function will verify soon """
         return ''
 
+    def __repr__(self):
+        return str({'name': self.name, 'path': self.path})
+
 
 class _HTTPErrorRouter(SlothRouter):
     def __init__(self, response, status_code, *args, **kwargs):
@@ -41,6 +44,7 @@ class RouterManager(object, metaclass=Singleton):
         self.__registered = False
 
         self._routers = self.register_routers(routers)
+        self.routers = self._routers
 
     def register_routers(self, routers: dict):
         """ Register routers.
