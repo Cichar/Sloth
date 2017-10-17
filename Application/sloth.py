@@ -22,7 +22,7 @@ class Sloth(object):
 
     """
 
-    __server__ = 'Sloth'
+    __server__ = 'Sloth Server'
     __version__ = 1.0
 
     def __init__(self, routers: dict=None):
