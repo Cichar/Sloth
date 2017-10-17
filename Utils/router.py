@@ -1,25 +1,33 @@
 # -*- coding:utf-8 -*-
 
 from Utils.baseobject import Singleton
+from Utils.baseobject import SlothRouter
 from Utils.exception import RouterException
 from Utils.exception import RegisterException
 from Utils.exception import RouterTypeException
 
 
-class Router(object):
+class _Router(SlothRouter):
     """ Rule for register router in Sloth """
 
-    def __init__(self, path: str, router, name=None):
+    def __init__(self, path: str, response, name=None, *args, **kwargs):
         self.name = name
         self.path = self.parse_path(path)
-        self.router = router
+        super().__init__(response, *args, **kwargs)
 
     @staticmethod
     def parse_path(path):
-        return '.'
+        """ This function will verify soon """
+        return ''
 
-    def execute(self):
-        self.router.start_response()
+
+class _HTTPErrorRouter(SlothRouter):
+    def __init__(self, response, status_code, *args, **kwargs):
+        self.status_code = status_code
+        super().__init__(response, *args, **kwargs)
+
+    def initialize(self):
+        self.response.set_status(self.status_code)
 
 
 class RouterManager(object, metaclass=Singleton):
@@ -31,6 +39,7 @@ class RouterManager(object, metaclass=Singleton):
         self.application = app
         self._response_cls = response_cls
         self.__registered = False
+
         self._routers = self.register_routers(routers)
 
     def register_routers(self, routers: dict):
@@ -42,12 +51,12 @@ class RouterManager(object, metaclass=Singleton):
 
         registered_routers = {}
 
-        for path, _router in routers.items():
-            if not callable(_router):
-                raise RouterException('Router must be a callable function.')
-            if not issubclass(_router, self._response_cls):
-                raise RouterTypeException('Router must be the subclass of %s.' % self._response_cls.__name__)
-            router = Router(path, _router)
+        for path, response in routers.items():
+            if not callable(response):
+                raise RouterException('Response must be a callable function.')
+            if not issubclass(response, self._response_cls):
+                raise RouterTypeException('Response must be the subclass of %s.' % self._response_cls.__name__)
+            router = _Router(path, response)
             registered_routers[path] = router
 
         self.__registered = True
@@ -82,6 +91,5 @@ class RouterManager(object, metaclass=Singleton):
             response = router(self.application)
             response.receive_request(request)
         else:
-            response = self._response_cls(self.application)
-            response.set_status(404)
+            response = _HTTPErrorRouter(self._response_cls(self.application), 404)
         return response
