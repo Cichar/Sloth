@@ -9,7 +9,7 @@ class IndexHandler(SlothResponse):
     pass
 
 
-app = Sloth(routers={'test_handler': IndexHandler})
+app = Sloth(routers={'/': IndexHandler})
 server = Server(app)
 
 if __name__ == '__main__':
