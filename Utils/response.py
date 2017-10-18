@@ -1,8 +1,9 @@
 # -*- coding:utf-8 -*-
 
-from .exception import HTTPError
 from .objects import normal_response
 from .baseobject import ThreadSafeObject
+from .exception import HTTPError
+from .exception import ResponseException
 
 
 class SlothResponse(ThreadSafeObject):
@@ -16,7 +17,7 @@ class SlothResponse(ThreadSafeObject):
         self.__status_code = None
         self.__reason = None
         self.__headers = []
-        self.__body = None
+        self.__body = []
 
         self.clear()
         self.initialize()
@@ -104,7 +105,7 @@ class SlothResponse(ThreadSafeObject):
         """
         pass
 
-    def finish(self, *args, **kwargs):
+    def finish(self, chunk):
         """ Finish The Request, Before on_finish()
             Called for each response. 
             Execute:
@@ -113,9 +114,8 @@ class SlothResponse(ThreadSafeObject):
 
         if self._finished:
             raise RuntimeError("finish() called twice.")
-        if not self._prepare:
-            self.prepare()
 
+        self.__body.append(self.to_bytes(chunk))
         self._finished = True
         self.on_finish()
 
@@ -134,27 +134,46 @@ class SlothResponse(ThreadSafeObject):
 
         self.__status_code = status_code
         if reason:
-            self.__body = self.__reason = reason
+            self.__reason = reason
         else:
             try:
-                self.__body = self.__reason = normal_response[status_code]
+                self.__reason = normal_response[status_code]
             except KeyError:
                 raise ValueError("Unknown HTTP Error Code %d" % status_code)
+        self.finish(self.__reason)
 
     @staticmethod
-    def _to_bytes(chunk):
+    def to_bytes(chunk):
         """ If chunk object is not bytes,
             Conversion chunk to bytes then return,
             else return immediately.
         """
 
         if not isinstance(chunk, bytes):
-            return [bytes(chunk, 'utf-8')]
+            return bytes(chunk, 'utf-8')
         else:
-            return [chunk]
+            return chunk
 
     def render_template(self, *args, **kwargs):
+        """ This function will verify soon """
         self.finish(*args, **kwargs)
 
     def start_response(self):
-        return self._to_bytes(self.body)
+        """ Start to handler request.
+            :return: response body
+        """
+
+        try:
+            if self._request.method not in self.SUPPORT_METHODS:
+                raise HTTPError(405)
+            if not self._prepare:
+                self.prepare()
+
+            getattr(self, self._request.method.lower())()
+        except Exception as err:
+            self._handler_request_exception(err)
+        else:
+            return self.body
+
+    def _handler_request_exception(self, err):
+        raise err
