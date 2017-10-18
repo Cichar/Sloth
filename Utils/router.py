@@ -25,12 +25,14 @@ class _Router(SlothRouter):
 
 
 class _HTTPErrorRouter(SlothRouter):
-    def __init__(self, response, status_code, *args, **kwargs):
+    def __init__(self, request, response, status_code, *args, **kwargs):
+        self.request = request
         self.status_code = status_code
         super().__init__(response, *args, **kwargs)
 
     def initialize(self):
         self.response.set_status(self.status_code)
+        self.response.receive_request(self.request)
 
 
 class RouterManager(object, metaclass=Singleton):
@@ -60,40 +62,33 @@ class RouterManager(object, metaclass=Singleton):
                 raise RouterException('Response must be a callable function.')
             if not issubclass(response, self._response_cls):
                 raise RouterTypeException('Response must be the subclass of %s.' % self._response_cls.__name__)
-            router = _Router(path, response)
+            router = _Router(path, response(self.application))
             registered_routers[path] = router
 
         self.__registered = True
         return registered_routers
 
     def find_router(self, request):
-        """ Parse request PATH_INFO.
-            then find the router which in or not in this manager
-        """
-
-        router = self._routers.get(request.path, None)
-        return router
-
-    def get_router(self, request):
-        """ Use request to get the router, which registered in this manager.
+        """ Use request to find the router, which registered in this manager.
             If registered flag is not True, maybe register func not execute.
-            then raise RegisterException()
+            then raise RegisterException(); else parse request PATH_INFO.
+            then find the router which in or not in this manager
         """
 
         if not self.__registered:
             raise RegisterException('RouterManager has no routers map, '
                                     'maybe register function not execute.')
-        router = self.find_router(request)
-        return router
 
-    def get_response(self, request):
-        router = self.get_router(request)
+        router = self._routers.get(request.path, None)
 
         # if router is exist, then return correct response
         # else assert the router is not exist, return default 404 response
         if router:
-            response = router(self.application)
-            response.receive_request(request)
+            router.response.receive_request(request)
         else:
-            response = _HTTPErrorRouter(self._response_cls(self.application), 404)
-        return response
+            router = _HTTPErrorRouter(request, self._response_cls(self.application), 404)
+        return router
+
+    def get_response(self, request):
+        router = self.find_router(request)
+        return router
