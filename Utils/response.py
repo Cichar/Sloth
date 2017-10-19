@@ -50,42 +50,42 @@ class SlothResponse(ThreadSafeObject):
             Subclass need to implement this method,
         """
 
-        raise HTTPError(405)
+        raise HTTPError(405, method='HEAD')
 
     def get(self, *args, **kwargs):
         """ If Router Method Support ''GET'',
             Subclass need to implement this method,
         """
 
-        raise HTTPError(405)
+        raise HTTPError(405, method='GET')
 
     def post(self, *args, **kwargs):
         """ If Router Method Support ''POST'',
             Subclass need to implement this method,
         """
 
-        raise HTTPError(405)
+        raise HTTPError(405, method='POST')
 
     def put(self, *args, **kwargs):
         """ If Router Method Support ''PUT'',
             Subclass need to implement this method,
         """
 
-        raise HTTPError(405)
+        raise HTTPError(405, method='PUT')
 
     def delete(self, *args, **kwargs):
         """ If Router Method Support ''DELETE'',
             Subclass need to implement this method,
         """
 
-        raise HTTPError(405)
+        raise HTTPError(405, method='DELETE')
 
     def options(self, *args, **kwargs):
         """ If Router Method Support ''OPTIONS'',
             Subclass need to implement this method,
         """
 
-        raise HTTPError(405)
+        raise HTTPError(405, method='OPTIONS')
 
     def initialize(self):
         """ Initial Something
@@ -104,6 +104,9 @@ class SlothResponse(ThreadSafeObject):
                 Initialize --> Prepare --> finish --> on_finish
         """
         pass
+
+    def _finish(self):
+        self._finished = True
 
     def finish(self, chunk):
         """ Finish The Request, Before on_finish()
@@ -160,20 +163,30 @@ class SlothResponse(ThreadSafeObject):
 
     def start_response(self):
         """ Start to handler request.
+            If _prepare is false, this func will
+            call prepare() to complete process:
+                Initialize --> Prepare --> finish --> on_finish
             :return: response body
         """
 
         try:
             if self._request.method not in self.SUPPORT_METHODS:
-                raise HTTPError(405)
+                raise HTTPError(405, method=self._request.method)
             if not self._prepare:
                 self.prepare()
-
-            getattr(self, self._request.method.lower())()
+            if not self._finished:
+                getattr(self, self._request.method.lower())()
         except Exception as err:
             self._handler_request_exception(err)
-        else:
+        finally:
+            # Auto complete response when user forget to
+            # call render_func or other func to finish this response
+            if not self._finished:
+                self._finish()
             return self.body
 
     def _handler_request_exception(self, err):
-        raise err
+        if isinstance(err, HTTPError):
+            self.set_status(err.status_code, str(err))
+        else:
+            raise err
