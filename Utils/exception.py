@@ -29,10 +29,11 @@ class HTTPError(SlothBaseException):
         self.status_code = status_code
         self.message = message
         self.reason = kwargs.get('reason', None)
+        self.method = kwargs.get('method', None)
 
     def __str__(self):
-        message = "HTTP %d: %s" % (self.status_code,
-                                   self.reason or normal_response[self.status_code])
+        message = "HTTP %d: %s %s" % (self.status_code,  self.method,
+                                      self.reason or normal_response[self.status_code])
         if self.message:
             return message + "(" + self.message + ")"
         else:
