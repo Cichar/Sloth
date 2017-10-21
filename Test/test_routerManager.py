@@ -1,7 +1,8 @@
 # -*- coding:utf-8 -*-
 
-from Utils.router import RouterManager
-from Utils.response import SlothResponse
+from Sloth.Utils.router import RouterManager
+
+from Sloth.Utils.response import SlothResponse
 
 
 class IndexHandler(SlothResponse):
