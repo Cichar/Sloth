@@ -1,10 +1,73 @@
 # -*- coding:utf-8 -*-
 
+import re
+
 from .baseobject import Singleton
 from .baseobject import SlothRouter
 from .exception import RouterException
 from .exception import RegisterException
 from .exception import RouterTypeException
+from .exception import RouterArgTypeException
+
+
+class _PathMatch(object):
+    """ Path Match Rule For Router """
+
+    _int = '\d+'
+    _string = '\w+'
+    _re_group = re.compile("<.+>")
+
+    def __init__(self, path):
+        if isinstance(path, str):
+            _regex = self.construct(path)
+            if not _regex.endswith('$'):
+                _regex += '$'
+            self.regex = re.compile(_regex)
+
+    def construct(self, path):
+        """ Construct formatted url path.
+            Example:
+                '/hello/<name>'  -->  '/hello/(?P<name>.+)'
+                '/hello/<name:int>'  -->  '/hello/(?P<name>\d+)'
+                '/hello/<name:string>'  -->  '/hello/(?P<name>\w+)'
+        """
+
+        groups = path.split('/')
+
+        for k, v in enumerate(groups):
+            v = v.replace(' ', '')
+            if self._re_group.match(v):
+                _ = v[1:-1].split(':')
+                if len(_) > 1:
+                    _type = getattr(self, '_' + _[1], None)
+                    if _type:
+                        groups[k] = '(?P<%s>%s)' % (_[0], getattr(self, '_' + _[1]))
+                    else:
+                        raise RouterArgTypeException("type %s is not support. if you don't know "
+                                                     "which type you need choose, you can set <name>. the "
+                                                     "other is <name:int>、<name:string>" % _[1])
+                else:
+                    groups[k] = '(?P' + v + '.+' + ')'
+
+        _path = '/'.join(groups)
+
+        return _path
+
+    def match(self, path):
+        match = self.regex.match(path)
+
+        # if request.path is not match
+        # assert the router is not exist return None
+        if not match:
+            return None
+
+        # if regex has no groups
+        # assert the router don't need args and kwargs
+        if not self.regex.groups:
+            return {}
+
+        # # initial args and kwargs
+        # args, kwargs = [], {}
 
 
 class _Router(SlothRouter):
@@ -12,16 +75,13 @@ class _Router(SlothRouter):
 
     def __init__(self, path: str, response, name=None, *args, **kwargs):
         self.name = name
-        self.path = self.parse_path(path)
+        self.path = path
+        self.matcher = _PathMatch(path)
         super().__init__(response, *args, **kwargs)
 
-    @staticmethod
-    def parse_path(path):
-        """ This function will verify soon """
-        return ''
-
     def __repr__(self):
-        return str({'name': self.name, 'path': self.path})
+        return str("Router(path='{0}', response={1}, name='{2}')".format(
+                    self.path, self.response.__class__, self.name))
 
 
 class _HTTPErrorRouter(SlothRouter):
@@ -40,30 +100,36 @@ class RouterManager(object, metaclass=Singleton):
         This class must only be an instance object in Sloth class.
     """
 
-    def __init__(self, app: object, routers: dict, response_cls):
+    def __init__(self, app: object, routers, response_cls):
         self.application = app
         self._response_cls = response_cls
         self.__registered = False
 
         self._routers = self.register_routers(routers)
-        self.routers = self._routers
 
-    def register_routers(self, routers: dict):
+    @property
+    def routers(self):
+        return self._routers
+
+    def register_routers(self, routers):
         """ Register routers.
-            This function will return a router dict.
+            This function will return a router list.
             Example:
-                pass
+                [
+                    Router(path='/', response=<class '__main__.IndexHandler'>, name='index')
+                    Router(path='/hello', response=<class '__main__.HelloHandler'>, name='hello')
+                ]
         """
 
-        registered_routers = {}
+        registered_routers = []
 
-        for path, response in routers.items():
-            if not callable(response):
+        for router in routers:
+            if not callable(router.response):
                 raise RouterException('Response must be a callable function.')
-            if not issubclass(response, self._response_cls):
+            if not issubclass(router.response, self._response_cls):
                 raise RouterTypeException('Response must be the subclass of %s.' % self._response_cls.__name__)
-            router = _Router(path, response(self.application))
-            registered_routers[path] = router
+            _router = _Router(router.path, router.response(self.application), name=router.name)
+            registered_routers.append(_router)
 
         self.__registered = True
         return registered_routers
@@ -79,15 +145,15 @@ class RouterManager(object, metaclass=Singleton):
             raise RegisterException('RouterManager has no routers map, '
                                     'maybe register function not execute.')
 
-        router = self._routers.get(request.path, None)
-
         # if router is exist, then return correct response
         # else assert the router is not exist, return default 404 response
-        if router:
-            router.response.receive_request(request)
-        else:
-            router = _HTTPErrorRouter(request, self._response_cls(self.application), 404)
-        return router
+        for router in self._routers:
+            match = router.matcher.match(request.path)
+            if match is not None:
+                router.response.receive_request(request)
+            else:
+                router = _HTTPErrorRouter(request, self._response_cls(self.application), 404)
+            return router
 
     def get_response(self, request):
         router = self.find_router(request)
