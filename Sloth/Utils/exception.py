@@ -16,6 +16,10 @@ class RouterTypeException(SlothBaseException):
     pass
 
 
+class RouterArgTypeException(SlothBaseException):
+    pass
+
+
 class RegisterException(SlothBaseException):
     pass
 
