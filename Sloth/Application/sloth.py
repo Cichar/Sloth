@@ -25,7 +25,7 @@ class Sloth(object):
     __server__ = 'Sloth Server'
     __version__ = 1.0
 
-    def __init__(self, routers: dict=None):
+    def __init__(self, routers: list=None):
         if not routers:
             raise HandlerException('Application Need At Least One Router. '
                                    'But Sloth.routers = %s' % routers)
