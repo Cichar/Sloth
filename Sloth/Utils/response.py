@@ -156,6 +156,10 @@ class SlothResponse(ThreadSafeObject):
         else:
             return chunk
 
+    def render_string(self, chunk):
+        """ This function will verify soon """
+        self.finish(chunk)
+
     def render_template(self, *args, **kwargs):
         """ This function will verify soon """
         self.finish(*args, **kwargs)
