@@ -1,7 +1,8 @@
 # -*- coding:utf-8 -*-
 
+from Sloth.Application import Sloth
+from Sloth.Utils.objects import Router
 from Sloth.Utils.router import RouterManager
-
 from Sloth.Utils.response import SlothResponse
 
 
@@ -10,6 +11,6 @@ class IndexHandler(SlothResponse):
 
 
 if __name__ == '__main__':
-    manager = RouterManager(None, {'test_handler': IndexHandler}, SlothResponse)
-    manager.register_routers({'test_handler': IndexHandler})
+    routers = [Router(path='/', response=IndexHandler)]
+    manager = RouterManager(Sloth, routers, SlothResponse)
     print(manager.routers)
