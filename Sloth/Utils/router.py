@@ -54,6 +54,22 @@ class _PathMatch(object):
         return _path
 
     def match(self, path):
+        """ Match path
+            if exist, then return args and kwargs
+            Example:
+                Router('/hello/(\d+)')
+                Request.PATH_INFO = '/hello/123'
+                return {router_args: [123], router_kwargs: {}}
+
+                Router('/hello/<name>')
+                Request.PATH_INFO = '/hello/name123'
+                return {router_args: [], router_kwargs: {'name': 'name123'}}
+
+                Router('/hello/<name>/(\d+)')
+                Request.PATH_INFO = '/hello/sloth/123'
+                return {router_args: [123], router_kwargs: {'name': 'sloth'}}
+        """
+
         match = self.regex.match(path)
 
         # if request.path is not match
@@ -66,8 +82,14 @@ class _PathMatch(object):
         if not self.regex.groups:
             return {}
 
-        # # initial args and kwargs
-        # args, kwargs = [], {}
+        router_args, router_kwargs = [], {}
+
+        # if groupindex is exist, assert the path has named arg.
+        if self.regex.groupindex:
+            router_kwargs = dict((str(k), v) for (k, v) in match.groupdict().items())
+        router_args = [arg for arg in match.groups() if arg not in router_kwargs.values()]
+
+        return dict(router_args=router_args, router_kwargs=router_kwargs)
 
 
 class _Router(SlothRouter):
