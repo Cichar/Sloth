@@ -95,11 +95,22 @@ class _PathMatch(object):
 class _Router(SlothRouter):
     """ Rule for register router in Sloth """
 
-    def __init__(self, path: str, response, name=None, *args, **kwargs):
+    def __init__(self, app, path: str, response, name=None, *args, **kwargs):
         self.name = name
         self.path = path
         self.matcher = _PathMatch(path)
-        super().__init__(response, *args, **kwargs)
+        super().__init__(response, app=app, *args, **kwargs)
+
+    def set_request(self, request, response_args, response_kwargs):
+        self.request = request
+        self.response_args = response_args
+        self.response_kwargs = response_kwargs
+
+    def execute(self):
+        response = self.response(self.application)
+        response.receive_request(self.request)
+        return response.status, response.headers, response.start_response(response_args=self.response_args,
+                                                                          response_kwargs=self.response_kwargs)
 
     def __repr__(self):
         return str("Router(path='{0}', response={1}, name='{2}')".format(
@@ -115,6 +126,9 @@ class _HTTPErrorRouter(SlothRouter):
     def initialize(self):
         self.response.set_status(self.status_code)
         self.response.receive_request(self.request)
+
+    def execute(self):
+        return self.response.status, self.response.headers, self.response.start_response()
 
 
 class RouterManager(object, metaclass=Singleton):
@@ -150,7 +164,7 @@ class RouterManager(object, metaclass=Singleton):
                 raise RouterException('Response must be a callable function.')
             if not issubclass(router.response, self._response_cls):
                 raise RouterTypeException('Response must be the subclass of %s.' % self._response_cls.__name__)
-            _router = _Router(router.path, router.response(self.application), name=router.name)
+            _router = _Router(self.application, router.path, router.response, name=router.name)
             registered_routers.append(_router)
 
         self.__registered = True
@@ -172,7 +186,7 @@ class RouterManager(object, metaclass=Singleton):
         for router in self._routers:
             match = router.matcher.match(request.path)
             if match is not None:
-                router.response.receive_request(request)
+                router.set_request(request, match['router_args'], match['router_kwargs'])
             else:
                 router = _HTTPErrorRouter(request, self._response_cls(self.application), 404)
             return router
