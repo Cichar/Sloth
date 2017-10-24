@@ -10,6 +10,8 @@ class SlothResponse(ThreadSafeObject):
 
     def __init__(self, app):
         self.application = app
+        self.response_args = None
+        self.response_kwargs = None
         self._request = None
         self._prepare = False
         self._finished = False
@@ -164,7 +166,7 @@ class SlothResponse(ThreadSafeObject):
         """ This function will verify soon """
         self.finish(*args, **kwargs)
 
-    def start_response(self):
+    def start_response(self, response_args=None, response_kwargs=None):
         """ Start to handler request.
             If _prepare is false, this func will
             call prepare() to complete process:
@@ -175,10 +177,16 @@ class SlothResponse(ThreadSafeObject):
         try:
             if self._request.method not in self.SUPPORT_METHODS:
                 raise HTTPError(405, method=self._request.method)
+
+            # receive args and kwargs from url
+            self.response_args = response_args
+            self.response_kwargs = response_kwargs
+
             if not self._prepare:
                 self.prepare()
             if not self._finished:
-                getattr(self, self._request.method.lower())()
+                method = getattr(self, self._request.method.lower())
+                method(*self.response_args, **self.response_kwargs)
         except Exception as err:
             self._handler_request_exception(err)
         finally:
