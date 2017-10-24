@@ -35,18 +35,14 @@ class SlothRouter(object):
         Provide a base router class for Sloth.
     """
 
-    def __init__(self, response, *args, **kwargs):
+    def __init__(self, response, app=None, *args, **kwargs):
+        self.application = app
+        self.request = None
         self.response = response
+        self.response_args = None
+        self.response_kwargs = None
 
         self.initialize()
-
-    @property
-    def status(self):
-        return self.response.status
-
-    @property
-    def headers(self):
-        return self.response.headers
 
     def initialize(self):
         """ Initial Something
@@ -56,4 +52,4 @@ class SlothRouter(object):
         pass
 
     def execute(self):
-        return self.response.start_response()
+        return NotImplementedError
