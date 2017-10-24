@@ -39,6 +39,6 @@ class Sloth(object):
     def __call__(self, environ, start_response):
         request = SlothRequest(environ)
         response = self._handler_request(request)
-        result = response.execute()
-        start_response(response.status, response.headers)
+        status, headers, result = response.execute()
+        start_response(status, headers)
         return result
