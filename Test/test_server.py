@@ -8,11 +8,11 @@ from Sloth.Server import Server
 
 
 class IndexHandler(SlothResponse):
-    def get(self, *args, **kwargs):
-        self.render_string('Hello Kitty!')
+    def get(self, num, name=None):
+        self.render_string('Hello %s! This is num %s' % (name, num))
 
 
-routers = [Router(path='/hello', response=IndexHandler)]
+routers = [Router(path='/hello/<name>/(\d+)', response=IndexHandler)]
 app = Sloth(routers=routers)
 server = Server(app)
 
