@@ -13,9 +13,14 @@ class Sloth(object):
         Example:
             from Sloth.Server import Server
             from Sloth.Application import Sloth
+            from Sloth.Utils.response import SlothResponse
 
-            urls = {'/': router}
-            app = Sloth(routers=urls)
+            class IndexHandler(SlothResponse):
+                def get(self, num, name=None):
+                    self.render_string('Hello %s! This is num %s' % (name, num))
+
+            routers = [Router(path='/hello/<name>/(\d+)', response=IndexHandler)]
+            app = Sloth(routers=routers)
             server = Server(app)
 
             server.start() # default run on http://127.0.0.1:8555
